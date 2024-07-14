@@ -5,6 +5,7 @@ using UnityEngine;
 
 public class Weapon : MonoBehaviour
 {
+    private ObjectPooler objectPooler;
     public Camera playerCamera;
 
     //shooting
@@ -42,13 +43,18 @@ public class Weapon : MonoBehaviour
         burstBulletsLeft = bulletsPerBurst;
     }
 
+    private void Start()
+    {
+        objectPooler = ObjectPooler.Instance;
+    }
+
     // Update is called once per frame
 
     void Update()
     {
         // if (Input.GetKeyDown(KeyCode.Mouse0))
         // {
-        //     FireWeapn();
+        //     FireWeapon();
         // }
         if (currentShootingMode == ShootingMode.Auto) {
             // Holding Down Left Mouse
@@ -58,20 +64,22 @@ public class Weapon : MonoBehaviour
             isShooting = Input.GetKeyDown(KeyCode.Mouse0);
         }
         if (isShooting && readyToShoot) {
-            readyToShoot = true;
+            // if readyToShoot is false, it will not run so to make readyToShoot true it must be true. Doesnt make sense to me
+            //readyToShoot = true; 
             burstBulletsLeft = bulletsPerBurst;
-            FireWeapn();
+            FireWeapon();
         }
     }
 
-    private void FireWeapn()
+    private void FireWeapon()
     {
         readyToShoot = false;
 
         Vector3 shootDirection = CalculateDirectionAndSpread().normalized;
 
         //Init bullet
-        GameObject bullet = Instantiate(bulletPrefab, bulletSpawn.position, Quaternion.identity);
+        //GameObject bullet = Instantiate(bulletPrefab, bulletSpawn.position, Quaternion.identity);
+        GameObject bullet = objectPooler.SpawnFromPool("Bullet", bulletSpawn.position, Quaternion.identity);
         //Pointing At the shooting direction
         bullet.transform.forward = shootDirection;
         //shoot
@@ -89,7 +97,7 @@ public class Weapon : MonoBehaviour
         // Burst Mode
         if (currentShootingMode == ShootingMode.Burst && burstBulletsLeft > 1) {
             burstBulletsLeft--;
-            Invoke("FireWeapn", shootingDelay);
+            Invoke("FireWeapon", shootingDelay);
         }
     }
 
@@ -122,10 +130,14 @@ public class Weapon : MonoBehaviour
         return direction + new Vector3(x, y, 0);
     }
 
-    private IEnumerator DestroyBulletAfterTime(GameObject bullet, float bulletLife)
+    private IEnumerator DestroyBulletAfterTime(GameObject bullet, float _bulletLife)
     {
-        yield return new WaitForSeconds(bulletLife);
-        Destroy(bullet);
+        yield return new WaitForSeconds(_bulletLife);
+        if (bullet != null)
+        {
+            //Destroy(bullet);
+            objectPooler.ReturnToPool("Bullet", bullet);
+        }
     }
 
 }
